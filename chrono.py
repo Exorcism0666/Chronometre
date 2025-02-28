@@ -1,61 +1,120 @@
 import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
 import time
+import os
 
-class Chronometre:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Chronomètre")
+class CourseApp(tk.Tk):
+    def __init__(self):
+        super().__init__()
+        self.title("Gestionnaire de Course - Vanille")
+        self.geometry("800x600")
         
-        self.running = False
-        self.start_time = None
-        self.elapsed_time = 0
+        # Gestionnaire de données
+        self.equipes = {}
+        self.resultats = []
+        self.archive_dir = "archives"
         
-        # Affichage du temps en très très gros
-        self.time_label = tk.Label(root, text="00:00:000", font=("Arial", 120))
-        self.time_label.pack(pady=20)
+        # Création de l'interface
+        self.create_widgets()
         
-        # Bouton Start
-        self.start_button = tk.Button(root, text="Start", command=self.start)
-        self.start_button.pack(side=tk.LEFT, padx=10)
+    def create_widgets(self):
+        # Frame principale
+        main_frame = ttk.Frame(self)
+        main_frame.pack(expand=True, fill='both', padx=20, pady=20)
         
-        # Bouton Stop
-        self.stop_button = tk.Button(root, text="Stop", command=self.stop)
-        self.stop_button.pack(side=tk.LEFT, padx=10)
+        # Titre en haut
+        title_label = ttk.Label(main_frame, 
+                              text="Gestionnaire de Course Char à Voile", 
+                              font=('Helvetica', 16, 'bold'))
+        title_label.pack(pady=20)
         
-        # Bouton Reset
-        self.reset_button = tk.Button(root, text="Reset", command=self.reset)
-        self.reset_button.pack(side=tk.LEFT, padx=10)
+        # Boutons centraux
+        button_frame = ttk.Frame(main_frame)
+        button_frame.pack(expand=True)
         
-        self.update_time()
-
-    def start(self):
-        if not self.running:
-            self.running = True
-            self.start_time = time.time() - self.elapsed_time
-            self.update_time()
-
-    def stop(self):
-        if self.running:
-            self.running = False
-            self.elapsed_time = time.time() - self.start_time
-
-    def reset(self):
-        # Réinitialiser le temps et mettre à jour l'affichage
-        self.running = False
-        self.elapsed_time = 0
-        self.start_time = None
-        self.time_label.config(text="00:00:000")
-
-    def update_time(self):
-        if self.running:
-            self.elapsed_time = time.time() - self.start_time
-            minutes, seconds = divmod(int(self.elapsed_time), 60)
-            milliseconds = int((self.elapsed_time - int(self.elapsed_time)) * 1000)
-            time_str = f"{minutes:02}:{seconds:02}:{milliseconds:03}"
-            self.time_label.config(text=time_str)
-            self.root.after(10, self.update_time)
+        buttons = [
+            ("Démarrer une course", self.demarrer_course),
+            ("Contre-la-montre", self.contre_la_montre),
+            ("Afficher le classement", self.afficher_classement),
+            ("Archiver les résultats", self.archiver_results),
+            ("Quitter", self.quit)
+        ]
+        
+        for text, command in buttons:
+            btn = ttk.Button(button_frame, 
+                           text=text, 
+                           command=command,
+                           width=25)
+            btn.pack(pady=5)
+        
+        # Zone de logs
+        self.log_text = tk.Text(main_frame, height=10, state='disabled')
+        self.log_text.pack(pady=20, fill='x')
+    
+    def log_message(self, message):
+        self.log_text.config(state='normal')
+        self.log_text.insert('end', message + '\n')
+        self.log_text.see('end')
+        self.log_text.config(state='disabled')
+    
+    def detecter_rfid(self):
+        self.log_message("En attente de détection RFID...")
+        popup = tk.Toplevel()
+        popup.title("Simulation RFID")
+        
+        ttk.Label(popup, text="Entrez l'UID simulé:").pack(padx=10, pady=5)
+        uid_entry = ttk.Entry(popup)
+        uid_entry.pack(padx=10, pady=5)
+        
+        def confirm():
+            uid = uid_entry.get()
+            popup.destroy()
+            self.enregistrer_equipe(uid)
+        
+        ttk.Button(popup, text="Valider", command=confirm).pack(pady=5)
+    
+    def enregistrer_equipe(self, uid):
+        if uid not in self.equipes:
+            nom = simpledialog.askstring("Enregistrement", "Nom de l'équipe:")
+            if nom:
+                self.equipes[uid] = nom
+                self.log_message(f"Équipe '{nom}' enregistrée (UID: {uid})")
+        else:
+            messagebox.showwarning("Erreur", "Carte déjà enregistrée")
+    
+    def demarrer_course(self):
+        self.detecter_rfid()
+        # Ajouter ici la logique de chronométrage
+    
+    def contre_la_montre(self):
+        self.detecter_rfid()
+        # Ajouter ici la logique spécifique
+    
+    def afficher_classement(self):
+        classement_window = tk.Toplevel()
+        classement_window.title("Classement")
+        
+        lb = tk.Listbox(classement_window, width=50)
+        lb.pack(padx=10, pady=10)
+        
+        for i, result in enumerate(sorted(self.resultats), 1):
+            lb.insert('end', f"{i}ème - {result}s")
+    
+    def archiver_results(self):
+        path = filedialog.asksaveasfilename(
+            initialdir=self.archive_dir,
+            filetypes=[("Fichiers texte", "*.txt")]
+        )
+        if path:
+            try:
+                with open(path, 'w') as f:
+                    f.write("Résultats des courses:\n")
+                    for t in self.resultats:
+                        f.write(f"{t}\n")
+                self.log_message(f"Archive sauvegardée: {path}")
+            except Exception as e:
+                messagebox.showerror("Erreur", str(e))
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    chrono = Chronometre(root)
-    root.mainloop()
+    app = CourseApp()
+    app.mainloop()
