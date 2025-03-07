@@ -1,120 +1,63 @@
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
-import time
-import os
+from tkinter import messagebox, ttk
+import sv_ttk as sv
+import webbrowser
 
-class CourseApp(tk.Tk):
-    def __init__(self):
-        super().__init__()
-        self.title("Gestionnaire de Course - Vanille")
-        self.geometry("800x600")
-        
-        # Gestionnaire de données
-        self.equipes = {}
-        self.resultats = []
-        self.archive_dir = "archives"
-        
-        # Création de l'interface
-        self.create_widgets()
-        
-    def create_widgets(self):
-        # Frame principale
-        main_frame = ttk.Frame(self)
-        main_frame.pack(expand=True, fill='both', padx=20, pady=20)
-        
-        # Titre en haut
-        title_label = ttk.Label(main_frame, 
-                              text="Gestionnaire de Course Char à Voile", 
-                              font=('Helvetica', 16, 'bold'))
-        title_label.pack(pady=20)
-        
-        # Boutons centraux
-        button_frame = ttk.Frame(main_frame)
-        button_frame.pack(expand=True)
-        
-        buttons = [
-            ("Démarrer une course", self.demarrer_course),
-            ("Contre-la-montre", self.contre_la_montre),
-            ("Afficher le classement", self.afficher_classement),
-            ("Archiver les résultats", self.archiver_results),
-            ("Quitter", self.quit)
-        ]
-        
-        for text, command in buttons:
-            btn = ttk.Button(button_frame, 
-                           text=text, 
-                           command=command,
-                           width=25)
-            btn.pack(pady=5)
-        
-        # Zone de logs
-        self.log_text = tk.Text(main_frame, height=10, state='disabled')
-        self.log_text.pack(pady=20, fill='x')
-    
-    def log_message(self, message):
-        self.log_text.config(state='normal')
-        self.log_text.insert('end', message + '\n')
-        self.log_text.see('end')
-        self.log_text.config(state='disabled')
-    
-    def detecter_rfid(self):
-        self.log_message("En attente de détection RFID...")
-        popup = tk.Toplevel()
-        popup.title("Simulation RFID")
-        
-        ttk.Label(popup, text="Entrez l'UID simulé:").pack(padx=10, pady=5)
-        uid_entry = ttk.Entry(popup)
-        uid_entry.pack(padx=10, pady=5)
-        
-        def confirm():
-            uid = uid_entry.get()
-            popup.destroy()
-            self.enregistrer_equipe(uid)
-        
-        ttk.Button(popup, text="Valider", command=confirm).pack(pady=5)
-    
-    def enregistrer_equipe(self, uid):
-        if uid not in self.equipes:
-            nom = simpledialog.askstring("Enregistrement", "Nom de l'équipe:")
-            if nom:
-                self.equipes[uid] = nom
-                self.log_message(f"Équipe '{nom}' enregistrée (UID: {uid})")
-        else:
-            messagebox.showwarning("Erreur", "Carte déjà enregistrée")
-    
-    def demarrer_course(self):
-        self.detecter_rfid()
-        # Ajouter ici la logique de chronométrage
-    
-    def contre_la_montre(self):
-        self.detecter_rfid()
-        # Ajouter ici la logique spécifique
-    
-    def afficher_classement(self):
-        classement_window = tk.Toplevel()
-        classement_window.title("Classement")
-        
-        lb = tk.Listbox(classement_window, width=50)
-        lb.pack(padx=10, pady=10)
-        
-        for i, result in enumerate(sorted(self.resultats), 1):
-            lb.insert('end', f"{i}ème - {result}s")
-    
-    def archiver_results(self):
-        path = filedialog.asksaveasfilename(
-            initialdir=self.archive_dir,
-            filetypes=[("Fichiers texte", "*.txt")]
-        )
-        if path:
-            try:
-                with open(path, 'w') as f:
-                    f.write("Résultats des courses:\n")
-                    for t in self.resultats:
-                        f.write(f"{t}\n")
-                self.log_message(f"Archive sauvegardée: {path}")
-            except Exception as e:
-                messagebox.showerror("Erreur", str(e))
+# Liste pour stocker les pseudos
+pseudos = []
 
-if __name__ == "__main__":
-    app = CourseApp()
-    app.mainloop()
+# Fonction pour ouvrir un lien
+def ouvrir_lien_mit():
+    webbrowser.open("http://example.com/")
+
+# Création de la fenêtre principale
+fenetre = tk.Tk()
+fenetre.title("Chronomètre, Projet STI2D")
+fenetre.geometry("500x400")
+fenetre.configure(bg="#1c1c1c")
+fenetre.resizable(False, False)
+sv.set_theme("dark")
+
+style = ttk.Style()
+style.configure("Large.Accent.TButton", padding=(20, 10), font=("Arial", 14))
+
+# Effet de fondu pour le titre
+def effet_fondu(opacity=0):
+    if opacity <= 1.0:
+        couleur = f"#{int(opacity * 255):02x}{int(opacity * 255):02x}{int(opacity * 255):02x}"
+        titre.config(foreground=couleur)
+        fenetre.after(50, effet_fondu, opacity + 0.05)
+
+description = "3, 2, 1… GO ! Le chronomètre ne ment jamais !"
+def afficher_texte(index=0):
+    if index < len(description):
+        texte_intro.config(text=description[:index+1])
+        fenetre.after(50, afficher_texte, index+1)
+
+titre = ttk.Label(fenetre, text="\u23F1 Le Grand Décompte!\nSerez-vous plus rapide que le temps ?", justify="center", font=("Arial", 18, "bold"), background="#1c1c1c", foreground="white")
+titre.pack(pady=20)
+effet_fondu()
+
+texte_intro = ttk.Label(fenetre, text="", font=("Arial", 10, "bold"), background="#1c1c1c", foreground="white")
+texte_intro.pack(pady=6)
+afficher_texte()
+
+cadre_boutons = ttk.Frame(fenetre)
+cadre_boutons.place(relx=0.5, rely=0.55, anchor="center")
+
+btn_jouer = ttk.Button(cadre_boutons, style="Large.Accent.TButton", text="Contre-La-Montre")
+btn_quitter = ttk.Button(cadre_boutons, style="Large.Accent.TButton", text="Quitter", command=fenetre.destroy)
+fenetre.after(1500, lambda: (btn_jouer.pack(pady=15), btn_quitter.pack(pady=15)))
+
+# Mentions légales
+mention_license = ttk.Label(fenetre, text="Projet d'STI2D sous licence ", font=("Arial", 8), background="#1c1c1c", foreground="white")
+mention_license.place(relx=0.0, rely=1.0, anchor="sw", x=10, y=-30)
+
+lien_mit = tk.Label(fenetre, text="MIT", fg="white", bg="#1c1c1c", font=("Arial", 8, "underline"), cursor="hand2")
+lien_mit.place(relx=0.0, rely=1.0, anchor="sw", x=134, y=-28)
+lien_mit.bind("<Button-1>", lambda e: ouvrir_lien_mit())
+
+mention_copyright = ttk.Label(fenetre, text="Copyright © Congia Vanille, Dubus Yanis", font=("Arial", 8), background="#1c1c1c", foreground="white")
+mention_copyright.place(relx=0.0, rely=1.0, anchor="sw", x=10, y=-10)
+
+fenetre.mainloop()
