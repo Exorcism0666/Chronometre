@@ -12,10 +12,15 @@ try:
         raw_data = arduino.readline()
 
         if raw_data:
-            data = raw_data.decode().strip()
+            data = int(raw_data.decode().strip())
             print(f"Distance: {data} mm")
+            if data <= int(400):
+                print("Objet")
+            else:
+                print("Pas d'objet")
         else:
             print("Aucune donnée reçue...")
+
 
 except KeyboardInterrupt:
     print("\nArrêt propre")
