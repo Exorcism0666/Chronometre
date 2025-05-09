@@ -9,28 +9,31 @@ permissions:
 
 jobs:
   deploy:
-    strategy:
-      matrix:
-        platform: [linux-arm64]  # Pour Raspberry Pi (64-bit)
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04-arm
     env:
-      script: script
+      script: script  # Ton nom de script
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0
+          fetch-depth: 0  # Nécessaire pour avoir l'historique des tags
 
       - name: Get latest tag
         id: get_tag
         shell: bash
         run: |
+          # Récupère le dernier tag
           git fetch --tags
           latest_tag=$(git describe --tags --abbrev=0 || echo "v0.0.0")
+          echo "Latest tag: $latest_tag"
+
+          # Incrémente le numéro de version (semver)
           version=${latest_tag#v}
           IFS='.' read -r major minor patch <<< "$version"
           new_patch=$((patch + 1))
           new_tag="v$major.$minor.$new_patch"
+
+          echo "New tag: $new_tag"
           echo "tag=$new_tag" >> $GITHUB_OUTPUT
 
       - name: Check Tag Exists
@@ -45,28 +48,27 @@ jobs:
         if: ${{ steps.checkTag.outputs.exists == 'true' }}
         run: exit 1
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+      - name: Set Up Python 3.10
+        uses: actions/setup-python@v5.6.0
+        with:
+          python-version: 3.13.3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Display Python Version
+        run: python -c "import sys; print(sys.version)"
 
-      - name: Build Executable for ARM (Raspberry Pi)
+      - name: Install Dependencies
         run: |
-          docker run --rm --privileged \
-            -v "$PWD":/src \
-            -w /src \
-            balenalib/raspberrypi3-python:3.10-buster \
-            /bin/bash -c "
-              apt-get update && apt-get install -y gcc python3-pip python3-dev build-essential
-              pip3 install pyinstaller -r requirements.txt
-              pyinstaller --onefile --noconsole main.py
-            "
+          python -m pip install --upgrade pip
+          pip install pyinstaller
+          pip install -r requirements.txt
+
+      - name: Create Executable
+        run: pyinstaller --onefile --noconsole main.py
 
       - name: Publish a New Release
         id: release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: dist/main_${{ matrix.platform }}
+          artifacts: dist/main
           tag: ${{ steps.get_tag.outputs.tag }}
           token: ${{ secrets.GITHUB_TOKEN }}
