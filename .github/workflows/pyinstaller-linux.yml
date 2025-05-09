@@ -9,9 +9,12 @@ permissions:
 
 jobs:
   deploy:
+    strategy:
+      matrix:
+        platform: [linux-arm64]  # Pour Raspberry Pi (64-bit)
     runs-on: ubuntu-latest
     env:
-      script: script  # Ton nom de script
+      script: script
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
@@ -64,6 +67,6 @@ jobs:
         id: release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: dist/main
+          artifacts: dist/main_${{ matrix.platform }}
           tag: ${{ steps.get_tag.outputs.tag }}
           token: ${{ secrets.GITHUB_TOKEN }}
