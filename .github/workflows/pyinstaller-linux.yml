@@ -49,10 +49,10 @@ jobs:
         if: ${{ steps.checkTag.outputs.exists == 'true' }}
         run: exit 1
 
-      - name: Set Up Python 3.10
+      - name: Set Up Python 3.13.3
         uses: actions/setup-python@v5.6.0
         with:
-          python-version: 3.10  # Utilisez une version compatible avec ARM
+          python-version: 3.13.3  # Utilisez une version compatible avec ARM
 
       - name: Install QEMU (pour cross-compilation)
         run: |
