@@ -73,7 +73,7 @@ jobs:
           tag: ${{ steps.get_tag.outputs.tag }}
           token: ${{ secrets.GITHUB_TOKEN }}
 
-jobs:
+jobs1:
   deploy:
     runs-on: ubuntu-latest
     env:
