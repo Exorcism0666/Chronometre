@@ -2,7 +2,7 @@ import serial
 import threading
 
 class RFIDReader:
-    def __init__(self, port='COM29', baudrate=9600):
+    def __init__(self, port='COM4', baudrate=9600):
         self.arduino = serial.Serial(port=port, baudrate=baudrate, timeout=1)
         self.uids = []
         self.running = False

@@ -1,30 +1,22 @@
-/* programme pour mesurer une distance en mm avec un HC-SR04*/
-/* numéro des broches */
-int trig = 9;
-int echo = 8;
+#define TRIG_PIN 9
+#define ECHO_PIN 8
 
-/* variables utilisées */
-long lecture_echo;
-long distance;
-
-void setup(){
-
-pinMode(trig, OUTPUT);
-digitalWrite(trig, LOW);
-pinMode(echo, INPUT);
-Serial.begin(9600);
-Serial.println ("Prêt à mesurer !");
-
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  digitalWrite(TRIG_PIN, LOW);
+  Serial.begin(9600);
+  delay(1000);
 }
 
-void loop(){
+void loop() {
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
 
-digitalWrite(trig, HIGH);
-delayMicroseconds(10);
-digitalWrite(trig, LOW);
-lecture_echo = pulseIn(echo,HIGH);
-distance = lecture_echo*10 /58;
-Serial.print("Distance en mm :");
-Serial.println(distance);
-delay(500);
+  long duration = pulseIn(ECHO_PIN, HIGH);
+  long distance_mm = duration * 10 / 58;
+
+  Serial.println(distance_mm);
+  delay(300);  // Moins de spam série
 }

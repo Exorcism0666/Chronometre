@@ -9,25 +9,26 @@ permissions:
 
 jobs:
   deploy:
+    strategy:
+      matrix:
+        platform: [linux-arm64]  # Pour Raspberry Pi (64-bit)
     runs-on: ubuntu-latest
     env:
-      script: script  # Ton nom de script
+      script: script
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v2
         with:
-          fetch-depth: 0  # Nécessaire pour avoir l'historique des tags
+          fetch-depth: 0
 
       - name: Get latest tag
         id: get_tag
         shell: bash
         run: |
-          # Récupère le dernier tag
           git fetch --tags
           latest_tag=$(git describe --tags --abbrev=0 || echo "v0.0.0")
           echo "Latest tag: $latest_tag"
 
-          # Incrémente le numéro de version (semver)
           version=${latest_tag#v}
           IFS='.' read -r major minor patch <<< "$version"
           new_patch=$((patch + 1))
@@ -51,10 +52,12 @@ jobs:
       - name: Set Up Python 3.10
         uses: actions/setup-python@v5.6.0
         with:
-          python-version: 3.13.3
+          python-version: 3.10  # Utilisez une version compatible avec ARM
 
-      - name: Display Python Version
-        run: python -c "import sys; print(sys.version)"
+      - name: Install QEMU (pour cross-compilation)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu qemu-user-static binfmt-support
 
       - name: Install Dependencies
         run: |
@@ -62,13 +65,29 @@ jobs:
           pip install pyinstaller
           pip install -r requirements.txt
 
-      - name: Create Executable
-        run: pyinstaller --onefile --noconsole main.py
+      - name: Create Executable for ARM
+        run: |
+          # Détermine l'architecture cible
+          if [ "${{ matrix.platform }}" = "linux-arm64" ]; then
+            arch="aarch64"
+          else
+            arch="armv7l"
+          fi
+          
+          # Utilise Docker pour cross-compiler
+          docker run --rm -v $(pwd):/src -w /src python:3.10-slim \
+            /bin/bash -c "
+            apt-get update && apt-get install -y gcc python3-dev && \
+            pip install pyinstaller && \
+            pip install -r requirements.txt && \
+            pyinstaller --onefile --noconsole main.py --name=main_${{ matrix.platform }} && \
+            chmod -R 777 dist
+            "
 
       - name: Publish a New Release
         id: release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: dist/main
+          artifacts: dist/main_${{ matrix.platform }}
           tag: ${{ steps.get_tag.outputs.tag }}
           token: ${{ secrets.GITHUB_TOKEN }}
